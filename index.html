@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>estarlinhacks | Official Site</title>
+    <style>
+        :root {
+            --rojo-vino: #660000;
+            --rojo-neon: #ff0000;
+            --negro-ebano: #0a0a0a;
+        }
+
+        body {
+            background-color: var(--negro-ebano);
+            color: white;
+            font-family: 'Orbitron', sans-serif;
+            margin: 0;
+            text-align: center;
+            overflow-x: hidden;
+        }
+
+        /* Efecto Eléctrico de Fondo */
+        .background-glow {
+            position: fixed;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: radial-gradient(circle at 50% 50%, rgba(102, 0, 0, 0.2) 0%, transparent 80%);
+            z-index: -1;
+        }
+
+        header {
+            padding: 100px 20px;
+            background: linear-gradient(180deg, #1a0000 0%, var(--negro-ebano) 100%);
+            border-bottom: 2px solid var(--rojo-vino);
+            box-shadow: 0 0 30px rgba(255, 0, 0, 0.2);
+        }
+
+        h1 {
+            font-size: 3.2rem;
+            margin: 0;
+            text-transform: lowercase;
+            letter-spacing: 5px;
+            color: #fff;
+            text-shadow: 0 0 10px var(--rojo-neon), 0 0 20px var(--rojo-vino);
+            animation: pulsoElectrico 2s infinite alternate;
+        }
+
+        @keyframes pulsoElectrico {
+            from { text-shadow: 0 0 10px var(--rojo-neon), 0 0 20px var(--rojo-vino); transform: scale(1); }
+            to { text-shadow: 0 0 25px var(--rojo-neon), 0 0 40px var(--rojo-vino); transform: scale(1.02); }
+        }
+
+        .container {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 30px;
+            padding: 60px 20px;
+        }
+
+        /* Tarjetas Estilo Premium */
+        .card {
+            background: rgba(20, 20, 20, 0.8);
+            border: 1px solid #330000;
+            border-radius: 15px;
+            width: 300px;
+            padding: 40px 20px;
+            transition: 0.4s;
+            backdrop-filter: blur(5px);
+        }
+
+        .card:hover {
+            border-color: var(--rojo-neon);
+            box-shadow: 0 0 40px rgba(255, 0, 0, 0.4);
+            transform: translateY(-15px);
+        }
+
+        .card h3 {
+            color: var(--rojo-neon);
+            margin-bottom: 15px;
+            text-transform: uppercase;
+            letter-spacing: 2px;
+        }
+
+        .card p {
+            color: #aaa;
+            font-size: 0.9rem;
+            line-height: 1.6;
+        }
+
+        /* Botón con energía */
+        .btn-action {
+            display: inline-block;
+            margin-top: 25px;
+            padding: 15px 35px;
+            background: var(--rojo-vino);
+            color: white;
+            text-decoration: none;
+            font-weight: bold;
+            border-radius: 5px;
+            border: 1px solid var(--rojo-neon);
+            transition: 0.3s;
+            box-shadow: 0 0 10px var(--rojo-vino);
+        }
+
+        .btn-action:hover {
+            background: var(--rojo-neon);
+            box-shadow: 0 0 25px var(--rojo-neon);
+            color: black;
+        }
+
+        footer {
+            padding: 40px;
+            color: #444;
+            font-size: 0.7rem;
+            letter-spacing: 2px;
+        }
+    </style>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
+</head>
+<body>
+
+    <div class="background-glow"></div>
+
+    <header>
+        <h1>estarlinhacks</h1>
+        <p style="color: #ff0000; font-size: 0.8rem; margin-top: 15px;">DOMINATING THE DIGITAL WORLD</p>
+    </header>
+
+    <div class="container">
+        <div class="card">
+            <h3>Nicks Insanos</h3>
+            <p>Accede a la base de datos de símbolos más completa para Free Fire y redes sociales.</p>
+            <a href="#" class="btn-action">OBTENER</a>
+        </div>
+
+        <div class="card">
+            <h3>Sensi VIP</h3>
+            <p>Configuraciones probadas para cada modelo de celular. Pega todo rojo ahora.</p>
+            <a href="#" class="btn-action">DESCARGAR</a>
+        </div>
+
+        <div class="card">
+            <h3>Sorteos</h3>
+            <p>Únete a nuestra comunidad y gana pases, diamantes y tarjetas de regalo mensuales.</p>
+            <a href="#" class="btn-action">PARTICIPAR</a>
+        </div>
+    </div>
+
+    <footer>
+        &copy; 2026 ESTARLINHACKS | BY DOLA PROFESSIONAL
+    </footer>
+
+</body>
+</html>
