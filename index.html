@@ -96,6 +96,8 @@ body{font-family:'DM Sans',sans-serif;background:var(--void);color:var(--text);d
 .empty-state{text-align:center;padding:30px;color:var(--muted);font-size:0.8rem;}
 .refresh-btn{background:rgba(220,20,60,0.1);border:1px solid var(--border2);color:var(--red2);padding:6px 14px;border-radius:8px;cursor:pointer;font-size:0.65rem;font-family:'DM Sans',sans-serif;}
 .admin-logout{background:rgba(255,255,255,0.05);border:1px solid var(--border);color:var(--muted);padding:6px 12px;border-radius:8px;cursor:pointer;font-size:0.65rem;font-family:'DM Sans',sans-serif;}
+/* admin URL info */
+.admin-url-info{background:rgba(0,230,118,0.07);border:1px solid rgba(0,230,118,0.25);border-radius:10px;padding:8px 14px;margin-bottom:14px;font-size:0.68rem;color:var(--green);text-align:center;}
 header{position:relative;z-index:10;background:rgba(7,0,8,0.95);backdrop-filter:blur(20px);border-bottom:1px solid var(--border2);padding:10px 14px;display:flex;align-items:center;gap:10px;flex-shrink:0;}
 .hd-avatar{width:40px;height:40px;border-radius:11px;background:linear-gradient(135deg,var(--dark-red),var(--red));display:flex;align-items:center;justify-content:center;font-size:1.2rem;flex-shrink:0;position:relative;animation:avatarGlow 3s ease-in-out infinite;}
 @keyframes avatarGlow{0%,100%{box-shadow:0 0 18px rgba(220,20,60,0.5);}50%{box-shadow:0 0 32px rgba(220,20,60,0.85);}}
@@ -177,7 +179,6 @@ header{position:relative;z-index:10;background:rgba(7,0,8,0.95);backdrop-filter:
 .usage-bar-fill.warning{background:linear-gradient(90deg,#ff8c00,var(--red2));}
 .usage-bar-fill.danger{background:linear-gradient(90deg,#ff0000,var(--red2));animation:barPulse 1s ease-in-out infinite;}
 @keyframes barPulse{0%,100%{opacity:1;}50%{opacity:0.6;}}
-.usage-count{font-size:0.62rem;color:var(--muted);flex-shrink:0;white-space:nowrap;}
 .upgrade-mini-btn{background:linear-gradient(135deg,var(--gold2),var(--gold));color:#000;border:none;padding:3px 10px;border-radius:20px;font-size:0.6rem;font-weight:700;cursor:pointer;font-family:'DM Sans',sans-serif;white-space:nowrap;}
 .pro-expiry-bar{margin-bottom:8px;padding:7px 12px;background:rgba(255,140,0,0.07);border:1px solid rgba(255,140,0,0.3);border-radius:10px;display:none;align-items:center;gap:8px;}
 .pro-expiry-bar.show{display:flex;}
@@ -313,6 +314,7 @@ header{position:relative;z-index:10;background:rgba(7,0,8,0.95);backdrop-filter:
     <button class="admin-logout" onclick="logoutUser()">⏏ Salir</button>
   </div>
   <div class="admin-body">
+    <div class="admin-url-info">🔗 Accede al panel admin con: <b>tu-url.com/?admin</b></div>
     <div class="stats-grid">
       <div class="stat-card red"><div class="stat-label">Activos ahora</div><div class="stat-value red" id="statOnline">—</div><div class="stat-sub">Últimos 2 min</div></div>
       <div class="stat-card green"><div class="stat-label">Total usuarios</div><div class="stat-value green" id="statTotal">—</div><div class="stat-sub">Registrados</div></div>
@@ -495,16 +497,30 @@ header{position:relative;z-index:10;background:rgba(7,0,8,0.95);backdrop-filter:
 
 <script type="module">
 import { initializeApp } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-app.js';
-import { getAuth, GoogleAuthProvider, OAuthProvider, signInWithPopup, signOut, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
+import {
+  getAuth, GoogleAuthProvider, OAuthProvider,
+  signInWithPopup, signInWithRedirect, getRedirectResult,
+  signOut, onAuthStateChanged,
+  createUserWithEmailAndPassword, signInWithEmailAndPassword
+} from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-auth.js';
 import { getFirestore, doc, setDoc, getDoc, updateDoc, increment, collection, getDocs, serverTimestamp, query, orderBy } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore.js';
 import { getStorage, ref as sRef, uploadString, getDownloadURL } from 'https://www.gstatic.com/firebasejs/10.12.0/firebase-storage.js';
 
 // ══════════════════════════════════════════════
+// 🔧 CONFIGURACIÓN — edita estas variables
+// ══════════════════════════════════════════════
 const STRIPE_PAYMENT_LINK = 'https://buy.stripe.com/test_fZu00jfPi2rta6w6hO7Zu00';
-const APP_DOMAIN          = 'https://rosaaquinodiaz9-sys.github.io/Starhackss-IA/';
+const APP_DOMAIN          = 'https://rosaaquinodiaz9-sys.github.io/Estarlinhacks/';
 const ADMIN_EMAIL         = 'estarlinlucianoaquino394@gmail.com';
 const GROQ_KEY            = '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';
-const TOGETHER_KEY        = 'key_CYenryAjPuzzj4veYadKv';
+// ══════════════════════════════════════════════
+// 🔧 MODELOS — actualizados a versiones vigentes
+// ══════════════════════════════════════════════
+// Modelo de chat general (Groq)
+const MODEL_CHAT = 'llama-3.3-70b-versatile';
+// Modelo de visión para imágenes (Groq) — CORREGIDO: llama-3.2-90b estaba descomisionado
+const MODEL_VISION = 'meta-llama/llama-4-scout-17b-16e-instruct';
+// Generación de imágenes: Pollinations AI — 100% GRATIS, sin API key, sin registro
 // ══════════════════════════════════════════════
 
 const firebaseConfig = {
@@ -526,29 +542,82 @@ const db      = getFirestore(fbApp);
 const storage = getStorage(fbApp);
 const gProv   = new GoogleAuthProvider();
 const aProv   = new OAuthProvider('apple.com');
-const isAdmin = window.location.search.includes('admin');
+
+// Detectar si es móvil para usar redirect en lugar de popup
+const isMobile = /Android|iPhone|iPad|iPod|Mobile/i.test(navigator.userAgent);
+const isAdmin   = window.location.search.includes('admin');
 
 let currentUser=null,userPlan='free',planExpiresAt=null,dailyUsed=0;
 let adminIv=null,emailMode='login',selPlan='free';
 let attachedImageBase64=null,attachedImageMime=null,attachedFileName=null;
 let messages=[],isTyping=false;
 
-// Stripe return
+// ── Stripe return ──
 (async()=>{
   const p=new URLSearchParams(window.location.search);
   if(p.get('stripe_success')==='1'){const uid=p.get('uid');if(uid){await activateProById(uid);window.history.replaceState({},'',window.location.pathname);showToast('⭐ ¡Pago exitoso! Bienvenido a Pro.',true);}}
   else if(p.get('stripe_cancel')==='1'){window.history.replaceState({},'',window.location.pathname);showToast('❌ Pago cancelado.');}
 })();
 
-onAuthStateChanged(auth,async u=>{
+// ── Manejo de redirect result (Google en móvil) ──
+onAuthStateChanged(auth, async u => {
+  // Primero intentar obtener resultado de redirect
+  try {
+    const result = await getRedirectResult(auth);
+    if (result?.user) {
+      // El redirect ya actualizó el auth state, onAuthStateChanged lo maneja
+    }
+  } catch(e) {
+    if (!e.code?.includes('cancelled') && !e.code?.includes('popup-closed')) {
+      showErr(parseErr(e));
+    }
+  }
+
   hideLoad();
-  if(u){currentUser=u;await registerUser(u);await setOnline(u,true);await loadPlan(u);
-    if(isAdmin&&u.email===ADMIN_EMAIL)showAdminPanel();else showApp(u);
-  }else{currentUser=null;userPlan='free';planExpiresAt=null;dailyUsed=0;if(adminIv)clearInterval(adminIv);showLogin();}
+  if(u){
+    currentUser=u;
+    await registerUser(u);
+    await setOnline(u,true);
+    await loadPlan(u);
+    if(isAdmin && u.email===ADMIN_EMAIL) showAdminPanel();
+    else showApp(u);
+  } else {
+    currentUser=null; userPlan='free'; planExpiresAt=null; dailyUsed=0;
+    if(adminIv) clearInterval(adminIv);
+    showLogin();
+  }
 });
 
-window.loginGoogle=async()=>{clearErr();showLoad();try{await signInWithPopup(auth,gProv);}catch(e){hideLoad();if(!e.code?.includes('cancelled')&&!e.code?.includes('popup-closed'))showErr(parseErr(e));}};
-window.loginApple=async()=>{clearErr();showLoad();try{await signInWithPopup(auth,aProv);}catch(e){hideLoad();if(!e.code?.includes('cancelled')&&!e.code?.includes('popup-closed'))showErr(parseErr(e));}};
+// ── Auth methods ──
+window.loginGoogle = async () => {
+  clearErr(); showLoad();
+  try {
+    if(isMobile) {
+      // En móvil usar redirect (más compatible que popup)
+      await signInWithRedirect(auth, gProv);
+    } else {
+      await signInWithPopup(auth, gProv);
+    }
+  } catch(e) {
+    hideLoad();
+    if(!e.code?.includes('cancelled') && !e.code?.includes('popup-closed')) showErr(parseErr(e));
+  }
+};
+
+window.loginApple = async () => {
+  clearErr(); showLoad();
+  try {
+    if(isMobile) {
+      await signInWithRedirect(auth, aProv);
+    } else {
+      await signInWithPopup(auth, aProv);
+    }
+  } catch(e) {
+    hideLoad();
+    if(!e.code?.includes('cancelled') && !e.code?.includes('popup-closed')) showErr(parseErr(e));
+  }
+};
+
 window.toggleEmailForm=()=>{const f=document.getElementById('emailForm');const a=document.getElementById('emailArrow');const o=f.style.display==='block';f.style.display=o?'none':'block';a.textContent=o?'›':'˅';};
 window.switchTab=m=>{emailMode=m;document.getElementById('tabLogin').classList.toggle('active',m==='login');document.getElementById('tabRegister').classList.toggle('active',m==='register');document.getElementById('pass2Input').style.display=m==='register'?'block':'none';document.getElementById('emailSubmitBtn').textContent=m==='login'?'Iniciar sesión':'Crear cuenta';};
 window.submitEmail=async()=>{clearErr();const e=document.getElementById('emailInput').value.trim();const p=document.getElementById('passInput').value;const p2=document.getElementById('pass2Input').value;if(!e||!p){showErr('Llena todos los campos.');return;}if(emailMode==='register'&&p!==p2){showErr('Las contraseñas no coinciden.');return;}showLoad();try{if(emailMode==='login')await signInWithEmailAndPassword(auth,e,p);else await createUserWithEmailAndPassword(auth,e,p);}catch(err){hideLoad();showErr(parseErr(err));}};
@@ -663,20 +732,53 @@ function isImageGenRequest(text){
   return IMG_TRIGGERS.some(t=>lower.includes(t));
 }
 
+// ── Generación de imágenes con Pollinations AI (100% GRATIS, sin API key) ──
 async function generateImage(prompt){
-  const res=await fetch('https://api.together.xyz/v1/images/generations',{
-    method:'POST',
-    headers:{'Content-Type':'application/json','Authorization':`Bearer ${TOGETHER_KEY}`},
-    body:JSON.stringify({
-      model:'black-forest-labs/FLUX.1-schnell-Free',
-      prompt:prompt,
-      width:1024,height:1024,steps:4,n:1,
-      response_format:'b64_json'
-    })
+  // Traducir prompt al inglés si está en español para mejores resultados
+  const translatedPrompt = await translatePromptToEnglish(prompt);
+  
+  // Pollinations AI — genera imagen y devuelve URL directa (gratis, sin límites)
+  const seed = Math.floor(Math.random() * 999999);
+  const encodedPrompt = encodeURIComponent(translatedPrompt);
+  const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=1024&seed=${seed}&model=flux&nologo=true&enhance=true`;
+  
+  // Cargar la imagen y convertirla a base64
+  const res = await fetch(imageUrl);
+  if(!res.ok) throw new Error(`Error generando imagen: HTTP ${res.status}`);
+  
+  const blob = await res.blob();
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => {
+      const b64 = reader.result.split(',')[1];
+      resolve(b64);
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(blob);
   });
-  if(!res.ok){const err=await res.json().catch(()=>({}));throw new Error(err?.error?.message||'Error generando imagen');}
-  const d=await res.json();
-  return d.data?.[0]?.b64_json||null;
+}
+
+// Traduce prompt al inglés usando Groq (mejora calidad de imagen)
+async function translatePromptToEnglish(prompt){
+  try{
+    const res = await fetch('https://api.groq.com/openai/v1/chat/completions',{
+      method:'POST',
+      headers:{'Content-Type':'application/json','Authorization':`Bearer ${GROQ_KEY}`},
+      body:JSON.stringify({
+        model: 'llama-3.3-70b-versatile',
+        messages:[
+          {role:'system',content:'You are a translator. Translate the user text to English for image generation. Return ONLY the translated text, nothing else. Make it descriptive and detailed for better image quality.'},
+          {role:'user',content:prompt}
+        ],
+        max_tokens:200,
+        temperature:0.3
+      })
+    });
+    const d = await res.json();
+    return d.choices?.[0]?.message?.content?.trim() || prompt;
+  }catch(e){
+    return prompt; // Si falla, usar prompt original
+  }
 }
 
 async function uploadGenImage(b64,uid){
@@ -709,25 +811,30 @@ window.sendMessage=async()=>{
 
   try{
     if(wantsImage&&!hasImage){
+      // ── Generación de imagen ──
       removeTyping();
       const placeholderId='gen_'+Date.now();
       addGenPlaceholder(placeholderId);
       let b64img=null;
-      try{b64img=await generateImage(text);}catch(e){b64img=null;}
+      let imgError=null;
+      try{b64img=await generateImage(text);}catch(e){imgError=e.message;b64img=null;}
       removePlaceholder(placeholderId);
       if(b64img){
         const url=currentUser?await uploadGenImage(b64img,currentUser.uid):null;
         addMsg('bot','¡Aquí está tu imagen generada! 🎨',`data:image/png;base64,${b64img}`,null,true,url);
         messages.push({role:'assistant',content:'[Imagen generada según tu solicitud]'});
       }else{
-        addMsg('bot','❌ Error al generar la imagen. Intenta de nuevo con otra descripción.');
+        const errMsg = imgError ? `❌ Error al generar imagen: ${imgError}` : '❌ Error al generar la imagen. Intenta de nuevo con otra descripción.';
+        addMsg('bot', errMsg);
       }
       messages.push({role:'user',content:text});
     }else{
+      // ── Chat / Visión ──
       const dl=daysLeft(planExpiresAt);
       const planCtx=userPlan==='pro'?`Usuario PRO.${dl!==null?` Plan vence en ${dl} días.`:''}`:`Usuario FREE (${dailyUsed}/${FREE_LIMIT} msgs hoy).`;
       let msgContent;
       if(hasImage){
+        // Usar el modelo de visión actualizado
         msgContent=[
           {type:'text',text:text||'¿Qué ves en esta imagen? Descríbela detalladamente.'},
           {type:'image_url',image_url:{url:`data:${imgMime};base64,${imgB64}`}}
@@ -740,26 +847,32 @@ window.sendMessage=async()=>{
         ...messages.slice(-18).map(m=>({role:m.role,content:m.content})),
         {role:'user',content:msgContent}
       ];
+      
+      // Seleccionar modelo: visión si hay imagen, chat general si no
+      const modelToUse = hasImage ? MODEL_VISION : MODEL_CHAT;
+      
       const res=await fetch('https://api.groq.com/openai/v1/chat/completions',{
         method:'POST',
         headers:{'Content-Type':'application/json','Authorization':`Bearer ${GROQ_KEY}`},
         body:JSON.stringify({
-          model:hasImage?'llama-3.2-90b-vision-preview':'llama-3.3-70b-versatile',
+          model: modelToUse,
           messages:apiMessages,
           max_tokens:userPlan==='pro'?2048:1024,
           temperature:0.7
         })
       });
       const d=await res.json();removeTyping();
-      if(d.error){addMsg('bot',res.status===401?'❌ API Key inválida.':`❌ Error: ${d.error.message}`);}
-      else{
+      if(d.error){
+        const errDetail = d.error.message || 'Error desconocido';
+        addMsg('bot',res.status===401?'❌ API Key de Groq inválida.':`❌ Error: ${errDetail}`);
+      }else{
         const r=d.choices?.[0]?.message?.content||'Sin respuesta.';
         addMsg('bot',r);
         messages.push({role:'user',content:hasImage?`[Imagen adjunta] ${text||''}`:text});
         messages.push({role:'assistant',content:r});
       }
     }
-  }catch(e){removeTyping();addMsg('bot','❌ Error de conexión.');}
+  }catch(e){removeTyping();addMsg('bot','❌ Error de conexión: '+e.message);}
   isTyping=false;document.getElementById('sendBtn').disabled=false;
 };
 
@@ -796,7 +909,7 @@ function addMsg(role,text,imgSrc=null,imgName=null,isGenerated=false,downloadUrl
 function addGenPlaceholder(id){
   const chat=document.getElementById('chatArea');
   const row=document.createElement('div');row.className='msg-row bot';row.id=id;
-  row.innerHTML=`<div class="msg-av bot">🤖</div><div class="msg-wrap"><div class="bubble bot">🎨 Generando imagen...</div><div class="gen-img-placeholder"><span style="font-size:2rem;">🖼️</span><div class="gen-img-text">Creando tu imagen con IA...</div><div class="gen-progress"><div class="gen-progress-fill"></div></div></div></div>`;
+  row.innerHTML=`<div class="msg-av bot">🤖</div><div class="msg-wrap"><div class="bubble bot">🎨 Generando imagen con IA...</div><div class="gen-img-placeholder"><span style="font-size:2rem;">🖼️</span><div class="gen-img-text">Creando tu imagen gratis con Pollinations AI...</div><div class="gen-progress"><div class="gen-progress-fill"></div></div></div></div>`;
   chat.appendChild(row);chat.scrollTop=chat.scrollHeight;
 }
 function removePlaceholder(id){document.getElementById(id)?.remove();}
@@ -822,6 +935,7 @@ function setupTextarea(){
 
 window.useSug=btn=>{document.getElementById('userInput').value=btn.textContent.trim().replace(/^[\p{Emoji}\s]+/u,'');sendMessage();};
 
+// ── Panel Admin ──
 async function showAdminPanel(){
   ['loginScreen','appHeader','mainChat','inputArea'].forEach(id=>document.getElementById(id).style.display='none');
   document.getElementById('adminPanel').style.display='flex';
@@ -860,16 +974,16 @@ window.loadAdminData=async()=>{
       const pc=u.provider==='google'?'p-google':u.provider==='apple'?'p-apple':'p-email';
       const pl=u.provider==='google'?'🔵 Google':u.provider==='apple'?'⚪ Apple':'✉️ Email';
       const pb=u.plan==='pro'?'<span class="plan-badge-pro">⭐ PRO</span>':'<span class="plan-badge-free">FREE</span>';
-      const av=u.photo?`<img src="${u.photo}" style="width:24px;height:24px;border-radius:50%;vertical-align:middle;margin-right:5px;">`:`<span style="width:24px;height:24px;border-radius:50%;background:linear-gradient(135deg,#8b0000,#dc143c);display:inline-flex;align-items:center;justify-content:center;font-size:0.65rem;margin-right:5px;vertical-align:middle;">${(u.name||'?').charAt(0)}</span>`;
+      const av=u.photo?`<img src="${u.photo}" style="width:24px;height:24px;border-radius:50%;vertical-align:middle;margin-right:5px;">`:`<span style="width:24px;height:24px;border-radius:50%;background:linear-gradient(135deg,#8b0000,#dc143c);display:inline-flex;align-items:center;justify-content:justify-content:center;font-size:0.65rem;margin-right:5px;vertical-align:middle;">${(u.name||'?').charAt(0)}</span>`;
       return `<tr><td>${av}${u.name||'?'}${isOn?'<span class="dot-green" style="margin-left:4px;"></span>':''}</td><td>${pb}</td><td><span class="provider-badge ${pc}">${pl}</span></td><td><span class="msg-badge">${u.messagesTotal||0}</span></td><td style="color:var(--muted);">${ls}</td></tr>`;
     }).join('');
-  }catch(e){showToast('⚠️ Error admin');}
+  }catch(e){showToast('⚠️ Error cargando datos admin: '+e.message);}
 };
 
 function buildDaysInfo(u){if(u.plan!=='pro'||!u.planExpiresAt)return'';const exp=new Date(u.planExpiresAt);const dl=Math.ceil((exp.getTime()-Date.now())/(1000*60*60*24));if(dl<0)return'<div class="pro-days-badge exp">❌ Pro expirado</div>';if(dl<=5)return`<div class="pro-days-badge warn">⚠️ ${dl}d restantes</div>`;return`<div class="pro-days-badge">${dl} días restantes</div>`;}
 
 const FREE_FEATS=[{i:'check',t:'20 mensajes por día',b:'fb-free',bt:'20/día'},{i:'check',t:'Acceso al modelo IA base'},{i:'check',t:'Envío de imágenes (IA las ve)'},{i:'cross',t:'Generación de imágenes IA',off:true},{i:'cross',t:'Mensajes ilimitados',off:true},{i:'cross',t:'Badge PRO exclusivo ⭐',off:true}];
-const PRO_FEATS=[{i:'star',t:'Mensajes ilimitados',b:'fb-pro',bt:'∞'},{i:'star',t:'Generación de imágenes IA 🎨',b:'fb-pro',bt:'FLUX'},{i:'check',t:'Envío de imágenes (IA las ve)'},{i:'check',t:'Respuestas más detalladas'},{i:'check',t:'Badge PRO ⭐'},{i:'check',t:'Cancela cuando quieras'}];
+const PRO_FEATS=[{i:'star',t:'Mensajes ilimitados',b:'fb-pro',bt:'∞'},{i:'star',t:'Generación de imágenes IA 🎨',b:'fb-pro',bt:'FREE'},{i:'check',t:'Envío de imágenes (IA las ve)'},{i:'check',t:'Respuestas más detalladas'},{i:'check',t:'Badge PRO ⭐'},{i:'check',t:'Cancela cuando quieras'}];
 
 window.openMemberModal=()=>{selPlan=userPlan==='pro'?'pro':'free';renderPlan(selPlan);document.getElementById('memberModal').classList.add('open');};
 window.closeMemberModal=()=>document.getElementById('memberModal').classList.remove('open');
@@ -904,7 +1018,7 @@ function showLoad(){document.getElementById('loginLoading').style.display='block
 function hideLoad(){document.getElementById('loginLoading').style.display='none';}
 function showErr(m){const e=document.getElementById('loginError');e.style.display='block';e.textContent='❌ '+m;}
 function clearErr(){const e=document.getElementById('loginError');e.style.display='none';e.textContent='';}
-function parseErr(e){const c=e.code||'';if(c.includes('user-not-found'))return'No existe cuenta con ese correo.';if(c.includes('wrong-password')||c.includes('invalid-credential'))return'Correo o contraseña incorrectos.';if(c.includes('email-already-in-use'))return'Ese correo ya tiene cuenta.';if(c.includes('weak-password'))return'Contraseña mínima de 6 caracteres.';if(c.includes('invalid-email'))return'Correo no válido.';return'Error al iniciar sesión.';}
+function parseErr(e){const c=e.code||'';if(c.includes('user-not-found'))return'No existe cuenta con ese correo.';if(c.includes('wrong-password')||c.includes('invalid-credential'))return'Correo o contraseña incorrectos.';if(c.includes('email-already-in-use'))return'Ese correo ya tiene cuenta.';if(c.includes('weak-password'))return'Contraseña mínima de 6 caracteres.';if(c.includes('invalid-email'))return'Correo no válido.';if(c.includes('popup-blocked'))return'Popup bloqueado. Intenta con email o activa popups en tu navegador.';return'Error al iniciar sesión: '+(e.message||c);}
 
 let toastT;
 window.showToast=(msg,type=false)=>{
@@ -917,6 +1031,7 @@ window.showToast=(msg,type=false)=>{
 
 window.addEventListener('pagehide',()=>{if(currentUser)setOnline(currentUser,false);});
 
+// ── Estrellas animadas ──
 (function(){
   const cv=document.getElementById('stars-canvas');const cx=cv.getContext('2d');let W,H,st=[];
   const rz=()=>{W=cv.width=innerWidth;H=cv.height=innerHeight;};
