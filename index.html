@@ -733,41 +733,25 @@ function isImageGenRequest(text){
 }
 
 // ── Generación de imágenes con Pollinations AI (100% GRATIS, sin API key) ──
+// Retorna la URL directa (sin fetch para evitar CORS en GitHub Pages)
 async function generateImage(prompt){
-  // Traducir prompt al inglés si está en español para mejores resultados
   const translatedPrompt = await translatePromptToEnglish(prompt);
-  
-  // Pollinations AI — genera imagen y devuelve URL directa (gratis, sin límites)
   const seed = Math.floor(Math.random() * 999999);
   const encodedPrompt = encodeURIComponent(translatedPrompt);
-  const imageUrl = `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=1024&seed=${seed}&model=flux&nologo=true&enhance=true`;
-  
-  // Cargar la imagen y convertirla a base64
-  const res = await fetch(imageUrl);
-  if(!res.ok) throw new Error(`Error generando imagen: HTTP ${res.status}`);
-  
-  const blob = await res.blob();
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onloadend = () => {
-      const b64 = reader.result.split(',')[1];
-      resolve(b64);
-    };
-    reader.onerror = reject;
-    reader.readAsDataURL(blob);
-  });
+  // Devuelve URL directa — el <img> la carga sin problemas de CORS
+  return `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=1024&seed=${seed}&model=flux&nologo=true&enhance=true`;
 }
 
-// Traduce prompt al inglés usando Groq (mejora calidad de imagen)
+// Traduce prompt al inglés usando Groq para mejores resultados
 async function translatePromptToEnglish(prompt){
   try{
     const res = await fetch('https://api.groq.com/openai/v1/chat/completions',{
       method:'POST',
       headers:{'Content-Type':'application/json','Authorization':`Bearer ${GROQ_KEY}`},
       body:JSON.stringify({
-        model: 'llama-3.3-70b-versatile',
+        model:'llama-3.3-70b-versatile',
         messages:[
-          {role:'system',content:'You are a translator. Translate the user text to English for image generation. Return ONLY the translated text, nothing else. Make it descriptive and detailed for better image quality.'},
+          {role:'system',content:'You are a translator. Translate the user text to English for image generation. Return ONLY the translated prompt, nothing else. Make it descriptive for better image quality.'},
           {role:'user',content:prompt}
         ],
         max_tokens:200,
@@ -776,9 +760,7 @@ async function translatePromptToEnglish(prompt){
     });
     const d = await res.json();
     return d.choices?.[0]?.message?.content?.trim() || prompt;
-  }catch(e){
-    return prompt; // Si falla, usar prompt original
-  }
+  }catch(e){ return prompt; }
 }
 
 async function uploadGenImage(b64,uid){
@@ -811,20 +793,20 @@ window.sendMessage=async()=>{
 
   try{
     if(wantsImage&&!hasImage){
-      // ── Generación de imagen ──
+      // ── Generación de imagen con Pollinations AI (URL directa, sin CORS) ──
       removeTyping();
       const placeholderId='gen_'+Date.now();
       addGenPlaceholder(placeholderId);
-      let b64img=null;
+      let imgUrl=null;
       let imgError=null;
-      try{b64img=await generateImage(text);}catch(e){imgError=e.message;b64img=null;}
+      try{imgUrl=await generateImage(text);}catch(e){imgError=e.message;imgUrl=null;}
       removePlaceholder(placeholderId);
-      if(b64img){
-        const url=currentUser?await uploadGenImage(b64img,currentUser.uid):null;
-        addMsg('bot','¡Aquí está tu imagen generada! 🎨',`data:image/png;base64,${b64img}`,null,true,url);
+      if(imgUrl){
+        // Mostrar imagen con URL directa — Pollinations no necesita base64
+        addMsgGenImage('bot','¡Aquí está tu imagen generada! 🎨', imgUrl);
         messages.push({role:'assistant',content:'[Imagen generada según tu solicitud]'});
       }else{
-        const errMsg = imgError ? `❌ Error al generar imagen: ${imgError}` : '❌ Error al generar la imagen. Intenta de nuevo con otra descripción.';
+        const errMsg = imgError ? `❌ Error: ${imgError}` : '❌ Error al generar la imagen. Intenta de nuevo.';
         addMsg('bot', errMsg);
       }
       messages.push({role:'user',content:text});
@@ -913,6 +895,35 @@ function addGenPlaceholder(id){
   chat.appendChild(row);chat.scrollTop=chat.scrollHeight;
 }
 function removePlaceholder(id){document.getElementById(id)?.remove();}
+
+// Muestra imagen generada desde URL directa (Pollinations, sin CORS)
+function addMsgGenImage(role, text, imgUrl){
+  const chat=document.getElementById('chatArea');
+  const now=new Date().toLocaleTimeString('es-ES',{hour:'2-digit',minute:'2-digit'});
+  const row=document.createElement('div');row.className=`msg-row ${role}`;
+  const imgId='img_'+Date.now();
+  row.innerHTML=`
+    <div class="msg-av bot">🤖</div>
+    <div class="msg-wrap">
+      <div class="bubble bot">${fmt(text)}</div>
+      <div class="ai-img-container" style="max-width:320px;">
+        <div id="loading_${imgId}" style="width:320px;height:200px;background:var(--card2);border-radius:14px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;">
+          <span style="font-size:1.8rem;">🖼️</span>
+          <span style="font-size:0.7rem;color:var(--muted);">Cargando imagen...</span>
+          <div class="gen-progress" style="width:80%;"><div class="gen-progress-fill"></div></div>
+        </div>
+        <img id="${imgId}" src="${imgUrl}" alt="Imagen generada"
+          style="display:none;width:100%;border-radius:14px;cursor:pointer;"
+          onclick="openImgFull('${imgUrl}')"
+          onload="document.getElementById('loading_${imgId}').style.display='none';this.style.display='block';"
+          onerror="document.getElementById('loading_${imgId}').innerHTML='<span style=\\'color:var(--red2);font-size:0.8rem;padding:20px;text-align:center;\\'>❌ No se pudo cargar la imagen.<br/>Intenta de nuevo.</span>';"/>
+        <div class="ai-img-badge">✨ IA GENERADA</div>
+        <a class="ai-img-download" href="${imgUrl}" target="_blank" download="starhacks-ia.png">⬇ Descargar</a>
+      </div>
+      <div class="msg-time">${now}</div>
+    </div>`;
+  chat.appendChild(row);chat.scrollTop=chat.scrollHeight;
+}
 
 function showTyping(){
   const chat=document.getElementById('chatArea');
@@ -1018,7 +1029,7 @@ function showLoad(){document.getElementById('loginLoading').style.display='block
 function hideLoad(){document.getElementById('loginLoading').style.display='none';}
 function showErr(m){const e=document.getElementById('loginError');e.style.display='block';e.textContent='❌ '+m;}
 function clearErr(){const e=document.getElementById('loginError');e.style.display='none';e.textContent='';}
-function parseErr(e){const c=e.code||'';if(c.includes('user-not-found'))return'No existe cuenta con ese correo.';if(c.includes('wrong-password')||c.includes('invalid-credential'))return'Correo o contraseña incorrectos.';if(c.includes('email-already-in-use'))return'Ese correo ya tiene cuenta.';if(c.includes('weak-password'))return'Contraseña mínima de 6 caracteres.';if(c.includes('invalid-email'))return'Correo no válido.';if(c.includes('popup-blocked'))return'Popup bloqueado. Intenta con email o activa popups en tu navegador.';return'Error al iniciar sesión: '+(e.message||c);}
+function parseErr(e){const c=e.code||'';if(c.includes('user-not-found'))return'No existe cuenta con ese correo.';if(c.includes('wrong-password')||c.includes('invalid-credential'))return'Correo o contraseña incorrectos.';if(c.includes('email-already-in-use'))return'Ese correo ya tiene cuenta.';if(c.includes('weak-password'))return'Contraseña mínima de 6 caracteres.';if(c.includes('invalid-email'))return'Correo no válido.';if(c.includes('popup-blocked'))return'Popup bloqueado. Usa email o activa popups.';if(c.includes('unauthorized-domain'))return'⚠️ Dominio no autorizado en Firebase. Ve a Firebase Console → Authentication → Authorized domains → y agrega: rosaaquinodiaz9-sys.github.io';return'Error: '+(e.message||c);}
 
 let toastT;
 window.showToast=(msg,type=false)=>{
