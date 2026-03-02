@@ -733,34 +733,43 @@ function isImageGenRequest(text){
 }
 
 // ── Generación de imágenes con Pollinations AI (100% GRATIS, sin API key) ──
-// Retorna la URL directa (sin fetch para evitar CORS en GitHub Pages)
 async function generateImage(prompt){
-  const translatedPrompt = await translatePromptToEnglish(prompt);
+  // Intentar traducir al inglés para mejores resultados, con fallback al prompt original
+  let finalPrompt = prompt;
+  try { finalPrompt = await translatePromptToEnglish(prompt); } catch(e){}
+  
+  // Limpiar y limitar el prompt (máx 200 chars para URL segura)
+  finalPrompt = finalPrompt
+    .replace(/[^\w\s,.\-!?áéíóúÁÉÍÓÚñÑ]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .slice(0, 200);
+  
   const seed = Math.floor(Math.random() * 999999);
-  const encodedPrompt = encodeURIComponent(translatedPrompt);
-  // Devuelve URL directa — el <img> la carga sin problemas de CORS
-  return `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=1024&seed=${seed}&model=flux&nologo=true&enhance=true`;
+  const encodedPrompt = encodeURIComponent(finalPrompt);
+  // URL directa sin fetch — el <img> la carga sin problemas de CORS
+  return `https://image.pollinations.ai/prompt/${encodedPrompt}?width=1024&height=1024&seed=${seed}&model=flux&nologo=true`;
 }
 
 // Traduce prompt al inglés usando Groq para mejores resultados
 async function translatePromptToEnglish(prompt){
-  try{
-    const res = await fetch('https://api.groq.com/openai/v1/chat/completions',{
-      method:'POST',
-      headers:{'Content-Type':'application/json','Authorization':`Bearer ${GROQ_KEY}`},
-      body:JSON.stringify({
-        model:'llama-3.3-70b-versatile',
-        messages:[
-          {role:'system',content:'You are a translator. Translate the user text to English for image generation. Return ONLY the translated prompt, nothing else. Make it descriptive for better image quality.'},
-          {role:'user',content:prompt}
-        ],
-        max_tokens:200,
-        temperature:0.3
-      })
-    });
-    const d = await res.json();
-    return d.choices?.[0]?.message?.content?.trim() || prompt;
-  }catch(e){ return prompt; }
+  // Limitar el prompt de entrada para no gastar tokens
+  const shortPrompt = prompt.slice(0, 200);
+  const res = await fetch('https://api.groq.com/openai/v1/chat/completions',{
+    method:'POST',
+    headers:{'Content-Type':'application/json','Authorization':`Bearer ${GROQ_KEY}`},
+    body:JSON.stringify({
+      model:'llama-3.3-70b-versatile',
+      messages:[
+        {role:'system',content:'Translate to English for image generation. Return ONLY the translated prompt in max 15 words, nothing else.'},
+        {role:'user',content:shortPrompt}
+      ],
+      max_tokens:60,
+      temperature:0.3
+    })
+  });
+  const d = await res.json();
+  return d.choices?.[0]?.message?.content?.trim() || prompt;
 }
 
 async function uploadGenImage(b64,uid){
@@ -824,9 +833,23 @@ window.sendMessage=async()=>{
       }else{
         msgContent=text;
       }
+      
+      // Truncar historial y contenido para no superar límite de tokens de Groq
+      function truncateContent(content, maxChars=800){
+        if(typeof content === 'string') return content.length > maxChars ? content.slice(0, maxChars)+'…' : content;
+        if(Array.isArray(content)) return content.map(c=> c.type==='text' ? {...c, text: truncateContent(c.text, maxChars)} : c);
+        return content;
+      }
+      
+      // Usar solo los últimos 6 mensajes y truncar los largos para evitar "Request too large"
+      const recentMessages = messages.slice(-6).map(m=>({
+        role: m.role,
+        content: truncateContent(m.content, 600)
+      }));
+      
       const apiMessages=[
-        {role:'system',content:`Eres StarHacks IA, asistente inteligente profesional con capacidad de ver imágenes. Creado por Estarlin Luciano Aquino. Responde en español salvo otro idioma. Sé claro y directo. Código en bloques triple backtick. ${planCtx}`},
-        ...messages.slice(-18).map(m=>({role:m.role,content:m.content})),
+        {role:'system',content:`Eres StarHacks IA, asistente de IA. Creado por Estarlin Luciano Aquino. Responde en español. Código en bloques triple backtick. ${planCtx}`},
+        ...recentMessages,
         {role:'user',content:msgContent}
       ];
       
@@ -839,7 +862,7 @@ window.sendMessage=async()=>{
         body:JSON.stringify({
           model: modelToUse,
           messages:apiMessages,
-          max_tokens:userPlan==='pro'?2048:1024,
+          max_tokens: 1024,
           temperature:0.7
         })
       });
@@ -850,8 +873,8 @@ window.sendMessage=async()=>{
       }else{
         const r=d.choices?.[0]?.message?.content||'Sin respuesta.';
         addMsg('bot',r);
-        messages.push({role:'user',content:hasImage?`[Imagen adjunta] ${text||''}`:text});
-        messages.push({role:'assistant',content:r});
+        messages.push({role:'user',content:(hasImage?`[Imagen adjunta] ${text||''}`:text).slice(0,600)});
+        messages.push({role:'assistant',content:r.slice(0,800)});
       }
     }
   }catch(e){removeTyping();addMsg('bot','❌ Error de conexión: '+e.message);}
@@ -1054,3 +1077,4 @@ window.addEventListener('pagehide',()=>{if(currentUser)setOnline(currentUser,fal
 </script>
 </body>
 </html>
+
